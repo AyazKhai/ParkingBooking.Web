@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ParkingBooking.Web.Data;
+using ParkingBooking.Web.Models;
 
 namespace ParkingBooking.Web.Controllers
 {
@@ -12,9 +13,15 @@ namespace ParkingBooking.Web.Controllers
             _applicationDbContext = applicationDbContext;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            var parkings = _applicationDbContext.Parkings.ToList();
+            return View(parkings);
+        }
+        [HttpPost]
+        public IActionResult GetParkingSpot(int id) {
+            var spots = _applicationDbContext.ParkingSpots.Where(s => s.ParkingId == id).ToList();
+            return View(spots);
         }
 
         public async Task<IActionResult> UsersInfo() {

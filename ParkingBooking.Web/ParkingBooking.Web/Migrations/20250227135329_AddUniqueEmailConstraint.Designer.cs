@@ -11,8 +11,8 @@ using ParkingBooking.Web.Data;
 namespace ParkingBooking.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250226131048_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20250227135329_AddUniqueEmailConstraint")]
+    partial class AddUniqueEmailConstraint
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,12 +40,11 @@ namespace ParkingBooking.Web.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Role")

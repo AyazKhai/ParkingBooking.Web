@@ -27,10 +27,10 @@ namespace ParkingBooking.Web.Services
             // Создаем claims (утверждения) для токена
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role) // Добавляем роль пользователя
+                new Claim(ClaimTypes.Role, user.Role) 
             };
 
             // Создаем ключ для подписи токена

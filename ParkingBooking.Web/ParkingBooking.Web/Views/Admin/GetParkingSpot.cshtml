@@ -1,0 +1,9 @@
+﻿@model List<ParkingSpot>
+
+@foreach (var spot in Model)
+{
+    <div class="parking-spot">
+        <p>Парковочное место № @spot.Number</p>
+        <p>Статус: @spot.Status</p>
+    </div>
+}

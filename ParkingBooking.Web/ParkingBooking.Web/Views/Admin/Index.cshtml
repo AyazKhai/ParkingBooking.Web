@@ -1,0 +1,30 @@
+﻿@model List<Parking>
+
+<h2>Парковки</h2>
+
+@if (Model != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>количество парк мест</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var parking in Model)
+            {
+                <tr>
+                    <td>@parking.Address</td>
+                    <td>@parking.ParkingSpots.Count</td>
+                    <td>
+                        <form method="post" action="/Admin/GetParkingSpot">
+                            <input type="hidden" name="id" value="@parking.ParkingId" />
+                            <button type="submit" class="btn btn-primary">Просмотреть места</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
