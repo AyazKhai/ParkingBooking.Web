@@ -1,0 +1,30 @@
+﻿@model List<User>
+@{
+}
+
+<h2>Пользователи</h2>
+
+@if (Model != null)
+{
+      <table class = "table">
+          <thead>
+              <tr>
+                  <th>Name</th>
+                  <th>Number</th>
+                  <th>Email</th>
+                    <th>Role</th>
+              </tr>
+          </thead>
+          <tbody>
+            @foreach(var user in Model)
+            {
+                <tr>
+                    <td>@user.Name</td>
+                    <td>@user.PhoneNumber</td>
+                    <td>@user.Email</td>
+                    <td>@user.Role</td>
+                </tr>
+            }
+        </tbody>
+      </table>      
+}
