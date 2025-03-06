@@ -1,9 +1,77 @@
-﻿@model List<ParkingSpot>
+﻿
 
-@foreach (var spot in Model)
+@{
+    @model ParkingSpot;
+    var parkingSpots = ViewData["parkingSpots"] as ParkingSpot[];
+    var parking = ViewData["parking"] as Parking;
+
+}
+
+@if (TempData["Message"] != null)
 {
-    <div class="parking-spot">
-        <p>Парковочное место № @spot.Number</p>
-        <p>Статус: @spot.Status</p>
+    <div class="alert alert-info">
+        @TempData["Message"]
     </div>
 }
+<h2>@parking.Address</h2>
+@if (parkingSpots != null && parkingSpots.Length > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Парковочное место</th>
+                <th>Статус</th>
+                <th>Информация</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var spot in parkingSpots)
+            {
+                <tr>
+                    <td>@spot.Number</td>
+                    <td>@spot.Status</td>
+                    <td>@spot.Information</td>
+                    <td>
+                        <form method="post" asp-action="DeleteParkingSpot" asp-controller="Admin">
+                            <input type="hidden" name="ParkingSpotId" value="@spot.ParkingSpotId" />
+                            <button type="submit" class="btn-delete">Удалить</button>
+                        </form>
+                    </td>
+                    <td>
+                        <a asp-action="EditParkingSpot" asp-controller="Admin" asp-route-id="@spot.ParkingSpotId">Редактировать</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Парковочные места не найдены.</p>
+}
+
+
+
+
+<form asp-action="CreateParkingSpot" enctype="multipart/form-data" method="post">
+    <div>
+        <label asp-for="Number">Номер парковочного места</label>
+        <input asp-for="Number" />
+        <span asp-validation-for="Number" class="text-danger"></span>
+    </div>
+    <div>
+        <label asp-for="Status">Статус</label>
+        <input asp-for="Status" />
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+    <div>
+        <label asp-for="Information">Информация</label>
+        <input asp-for="Information" />
+        <span asp-validation-for="Information" class="text-danger"></span>
+    </div>
+    <div>
+        <input type="hidden" asp-for="ParkingId" value="@parking.Address" />
+        <span asp-validation-for="ParkingId" class="text-danger"></span>
+    </div>
+    <button type="submit">Создать парковочное место</button>
+</form>

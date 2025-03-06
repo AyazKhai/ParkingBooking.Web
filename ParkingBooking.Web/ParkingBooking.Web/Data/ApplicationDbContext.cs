@@ -29,6 +29,10 @@ namespace ParkingBooking.Web.Data
                 .HasForeignKey(ps => ps.ParkingId)
                 .OnDelete(DeleteBehavior.Cascade); // Каскадное удаление
 
+            modelBuilder.Entity<ParkingSpot>()
+            .HasIndex(p => p.Number)
+            .IsUnique();
+
             base.OnModelCreating(modelBuilder);
         }
 
