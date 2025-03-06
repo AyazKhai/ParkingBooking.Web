@@ -1,0 +1,128 @@
+﻿
+@{
+    var parking = ViewData["parking"] as Parking;
+}
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Message"]
+    </div>
+}
+<form action="/Booking/ReserveSpot" method="get">
+    <input type="hidden" name="id" value="@parking.ParkingId" />
+
+    <table>
+        <tr>
+            <td>
+                <div class="form-group">
+                    <label for="start-date">Дата начала бронирования</label>
+                    <input type="date" id="start-date" name="startDate" class="form-control" />
+                    <span class="text-danger" data-valmsg-for="start-date"></span>
+                </div>
+            </td>
+            <td>
+                <div class="form-group">
+                    <label for="start-time">Время начала бронирования</label>
+                    <select id="start-time" name="startTime" class="form-control"></select>
+                    <span class="text-danger" data-valmsg-for="start-time"></span>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="form-group">
+                    <label for="end-date">Дата окончания бронирования</label>
+                    <input type="date" id="end-date" name="endDate" class="form-control" />
+                    <span class="text-danger" data-valmsg-for="end-date"></span>
+                </div>
+            </td>
+            <td>
+                <div class="form-group">
+                    <label for="end-time">Время окончания бронирования</label>
+                    <select id="end-time" name="endTime" class="form-control"></select>
+                    <span class="text-danger" data-valmsg-for="end-time"></span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Показать доступные места</button>
+</form>
+
+@if (Model != null)
+{
+    <h3>Доступные парковочные места:</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Адрес</th>
+                <th>Описание</th>
+                <th>Действие</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var spot in Model)
+            {
+                <tr>
+                    <td>@spot.Number</td>
+                    <td>@spot.Information</td>
+                    @* <td>
+                        <a asp-action="MakeReservation" asp-route-id="@spot.ParkingSpotId"
+                           asp-route-start="@Model.StartTime" asp-route-end="@Model.EndTime"
+                           class="btn btn-success">Забронировать</a>
+                    </td> *@
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+<script>
+    // Функция для округления времени до ближайших 15 минут
+    function roundToNearest15Minutes(date) {
+        const minutes = date.getMinutes();
+        const roundedMinutes = Math.ceil(minutes / 15) * 15; // Округляем вверх
+        date.setMinutes(roundedMinutes);
+        date.setSeconds(0);
+        return date;
+    }
+
+    // Функция для генерации времени с шагом в 15 минут
+    function generateTimeOptions(selectId, startHour, endHour, selectedTime) {
+        const timeSelect = document.getElementById(selectId);
+        timeSelect.innerHTML = ''; // Очищаем список
+
+        for (let hour = startHour; hour < endHour; hour++) {
+            for (let minute = 0; minute < 60; minute += 15) {
+                const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                const option = document.createElement('option');
+                option.value = timeString;
+                option.text = timeString;
+                if (timeString === selectedTime) {
+                    option.selected = true; // Выбираем текущее время по умолчанию
+                }
+                timeSelect.appendChild(option);
+            }
+        }
+    }
+
+    // Устанавливаем значения по умолчанию
+    function setDefaultTimes() {
+        const now = new Date();
+        const roundedStartTime = roundToNearest15Minutes(now);
+        const endTime = new Date(roundedStartTime);
+        endTime.setHours(endTime.getHours() + 1); // Конец брони = начало + 1 час
+
+        // Устанавливаем сегодняшнюю дату для начала и окончания
+        document.getElementById('start-date').value = now.toISOString().slice(0, 10);
+        document.getElementById('end-date').value = now.toISOString().slice(0, 10);
+
+        // Генерируем варианты времени для начала и окончания
+        generateTimeOptions('start-time', 0, 24, roundedStartTime.toTimeString().slice(0, 5));
+        generateTimeOptions('end-time', 0, 24, endTime.toTimeString().slice(0, 5));
+    }
+
+    // Вызываем функцию при загрузке страницы
+    setDefaultTimes();
+</script>

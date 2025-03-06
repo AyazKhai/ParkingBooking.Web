@@ -40,5 +40,6 @@ namespace ParkingBooking.Web.Data
         public DbSet<Parking> Parkings { get; set; }
         public DbSet<ParkingSpot> ParkingSpots { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
     }
 }

@@ -1,0 +1,44 @@
+﻿@{
+    var parkings = ViewData["parkings"] as Parking[];
+}
+
+
+<h2>Выберите Парковку</h2>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">
+        @TempData["Message"]
+    </div>
+}
+
+@if (parkings != null && parkings.Length > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Address</th>
+                <th>количество парк мест</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var parking in parkings)
+            {
+                <tr>
+                    <td>@parking.Address</td>
+                    <td>@parking.ParkingSpots.Count</td>
+                    <td>
+                        <form method="get" action="/Booking/ReserveSpot">
+                            <input type="hidden" name="id" value="@parking.ParkingId" />
+                            <button type="submit" class="btn btn-primary">Просмотреть места</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <h2>Парковок нет</h2>
+}
