@@ -6,7 +6,6 @@
 <h2>Редактирование парковочного места</h2>
 
 <form asp-action="EditParkingSpot" enctype="multipart/form-data" method="post">
-    <input type="hidden" asp-for="ParkingSpotId" />
 
     <div>
         <label asp-for="Number">Номер парковочного места</label>
@@ -16,7 +15,7 @@
 
     <div>
         <label asp-for="Status">Статус</label>
-        <input asp-for="Status" class="form-control" />
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ParkingSpotStatus>()" class="form-control"></select>
         <span asp-validation-for="Status" class="text-danger"></span>
     </div>
 
@@ -27,9 +26,9 @@
     </div>
 
     <div>
-        <input type="hidden" asp-for="ParkingId" value="@parking.Address" />
+        <input type="hidden" asp-for="ParkingId" value="@parking.ParkingId" />
         <span asp-validation-for="ParkingId" class="text-danger"></span>
     </div>
 
-    <button type="submit">Сохранить изменения</button>
+    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
 </form>

@@ -14,6 +14,67 @@
     </div>
 }
 <h2>@parking.Address</h2>
+
+<h3>Редактировать парковку</h3>
+
+
+<form asp-action="EditParking" method="post">
+    <input type="hidden" name="ParkingId" value="@parking.ParkingId" /> 
+
+    <div>
+        <label for="Address">Адрес парковки</label>
+        <input type="text" id="Address" name="Address" value="@parking.Address" class="form-control" />
+        <span class="text-danger" data-valmsg-for="Address"></span>
+    </div>
+
+    <div>
+        <label for="Status">Статус парковки</label>
+        <select asp-for="Status" class="form-control">
+            <option value="@parking.Status.ToString()" selected>@parking.Status.ToString()</option>
+
+            @foreach (var status in Html.GetEnumSelectList<ParkingStatus>())
+            {
+                if (status.Text != parking.Status.ToString())
+                {
+                    <option value="@status.Text">@status.Text</option>
+                }
+            }
+        </select>
+
+        <span class="text-danger" data-valmsg-for="Status"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+</form>
+<form method="post" asp-action="DeleteParking" asp-controller="Admin" onsubmit="return confirmDelete()">
+    <input type="hidden" name="ParkingId" value="@parking.ParkingId" />
+    <button type="submit" class="btn btn-danger">Удалить</button>
+</form>
+
+<h3>Создать парковочное место</h3>
+<form asp-action="CreateParkingSpot" enctype="multipart/form-data" method="post">
+    <div>
+        <label asp-for="Number">Номер парковочного места</label>
+        <input asp-for="Number" />
+        <span asp-validation-for="Number" class="text-danger"></span>
+    </div>
+    <div>
+        <label asp-for="Status">Статус</label>
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ParkingSpotStatus>()" class="form-control"></select>
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+    <div>
+        <label asp-for="Information">Информация</label>
+        <input asp-for="Information" />
+        <span asp-validation-for="Information" class="text-danger"></span>
+    </div>
+    <div>
+        <input type="hidden" asp-for="ParkingId" value="@parking.ParkingId" />
+        <span asp-validation-for="ParkingId" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Создать парковочное место</button>
+</form>
+
 @if (parkingSpots != null && parkingSpots.Length > 0)
 {
     <table class="table">
@@ -34,7 +95,7 @@
                     <td>
                         <form method="post" asp-action="DeleteParkingSpot" asp-controller="Admin">
                             <input type="hidden" name="ParkingSpotId" value="@spot.ParkingSpotId" />
-                            <button type="submit" class="btn-delete">Удалить</button>
+                            <button type="submit" class="btn btn-danger">Удалить</button>
                         </form>
                     </td>
                     <td>
@@ -52,26 +113,8 @@ else
 
 
 
-
-<form asp-action="CreateParkingSpot" enctype="multipart/form-data" method="post">
-    <div>
-        <label asp-for="Number">Номер парковочного места</label>
-        <input asp-for="Number" />
-        <span asp-validation-for="Number" class="text-danger"></span>
-    </div>
-    <div>
-        <label asp-for="Status">Статус</label>
-        <input asp-for="Status" />
-        <span asp-validation-for="Status" class="text-danger"></span>
-    </div>
-    <div>
-        <label asp-for="Information">Информация</label>
-        <input asp-for="Information" />
-        <span asp-validation-for="Information" class="text-danger"></span>
-    </div>
-    <div>
-        <input type="hidden" asp-for="ParkingId" value="@parking.Address" />
-        <span asp-validation-for="ParkingId" class="text-danger"></span>
-    </div>
-    <button type="submit">Создать парковочное место</button>
-</form>
+<script>
+    function confirmDelete() {
+        return confirm("Вы уверены, что хотите удалить эту парковку?");
+    }
+</script>

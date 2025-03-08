@@ -1,7 +1,42 @@
-﻿
-@{
+﻿@{
     var parking = ViewData["parking"] as Parking;
+
+    var startDate = ViewData["StartDate"] as string ?? DateTime.Now.ToString("yyyy-MM-dd");
+    var startTime = ViewData["StartTime"] as string ?? RoundToNearest15Minutes(DateTime.Now).ToString("HH:mm");
+    var endDate = ViewData["EndDate"] as string ?? DateTime.Now.ToString("yyyy-MM-dd");
+    var endTime = ViewData["EndTime"] as string ?? RoundToNearest15Minutes(DateTime.Now.AddHours(1)).ToString("HH:mm");
 }
+
+@functions {
+    // Метод для округления времени до ближайших 15 минут
+    public DateTime RoundToNearest15Minutes(DateTime dateTime)
+    {
+        int minutes = dateTime.Minute;
+        int roundedMinutes = (int)Math.Ceiling(minutes / 15.0) * 15; // Округляем вверх
+        if (roundedMinutes >= 60) // Если минуты превышают 59, увеличиваем час
+        {
+            roundedMinutes = 0;
+            dateTime = dateTime.AddHours(1);
+        }
+        return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0).AddMinutes(roundedMinutes);
+    }
+
+    // Метод для генерации списка времени с шагом 15 минут
+    public List<string> GenerateTimeOptions(string selectedTime)
+    {
+        var times = new List<string>();
+        for (int hour = 0; hour < 24; hour++)
+        {
+            for (int minute = 0; minute < 60; minute += 15)
+            {
+                string timeString = $"{hour:00}:{minute:00}";
+                times.Add(timeString);
+            }
+        }
+        return times;
+    }
+}
+
 @if (TempData["Message"] != null)
 {
     <div class="alert alert-danger">
@@ -10,20 +45,24 @@
 }
 <form action="/Booking/ReserveSpot" method="get">
     <input type="hidden" name="id" value="@parking.ParkingId" />
-
     <table>
         <tr>
             <td>
                 <div class="form-group">
                     <label for="start-date">Дата начала бронирования</label>
-                    <input type="date" id="start-date" name="startDate" class="form-control" />
+                    <input type="date" id="start-date" name="startDate" class="form-control" value="@startDate" />
                     <span class="text-danger" data-valmsg-for="start-date"></span>
                 </div>
             </td>
             <td>
                 <div class="form-group">
                     <label for="start-time">Время начала бронирования</label>
-                    <select id="start-time" name="startTime" class="form-control"></select>
+                    <select id="start-time" name="startTime" class="form-control">
+                        @foreach (var time in GenerateTimeOptions(startTime))
+                        {
+                            <option value="@time" selected="@(time == startTime ? "selected" : null)">@time</option>
+                        }
+                    </select>
                     <span class="text-danger" data-valmsg-for="start-time"></span>
                 </div>
             </td>
@@ -32,14 +71,19 @@
             <td>
                 <div class="form-group">
                     <label for="end-date">Дата окончания бронирования</label>
-                    <input type="date" id="end-date" name="endDate" class="form-control" />
+                    <input type="date" id="end-date" name="endDate" class="form-control" value="@endDate" />
                     <span class="text-danger" data-valmsg-for="end-date"></span>
                 </div>
             </td>
             <td>
                 <div class="form-group">
                     <label for="end-time">Время окончания бронирования</label>
-                    <select id="end-time" name="endTime" class="form-control"></select>
+                    <select id="end-time" name="endTime" class="form-control">
+                        @foreach (var time in GenerateTimeOptions(endTime))
+                        {
+                            <option value="@time" selected="@(time == endTime ? "selected" : null)">@time</option>
+                        }
+                    </select>
                     <span class="text-danger" data-valmsg-for="end-time"></span>
                 </div>
             </td>
@@ -48,10 +92,9 @@
 
     <button type="submit" class="btn btn-primary">Показать доступные места</button>
 </form>
-
+<h3>Доступные парковочные места:</h3>
 @if (Model != null)
 {
-    <h3>Доступные парковочные места:</h3>
     <table class="table">
         <thead>
             <tr>
@@ -66,63 +109,45 @@
                 <tr>
                     <td>@spot.Number</td>
                     <td>@spot.Information</td>
-                    @* <td>
-                        <a asp-action="MakeReservation" asp-route-id="@spot.ParkingSpotId"
-                           asp-route-start="@Model.StartTime" asp-route-end="@Model.EndTime"
+                    <td>
+                        <a asp-action="MakeReservation" 
+                            asp-route-id="@spot.ParkingSpotId"
+                           asp-route-startDate="@startDate"
+                           asp-route-startTime="@startTime"
+                           asp-route-endDate="@endDate"
+                           asp-route-endTime="@endTime"
                            class="btn btn-success">Забронировать</a>
-                    </td> *@
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 }
 
-
 <script>
-    // Функция для округления времени до ближайших 15 минут
-    function roundToNearest15Minutes(date) {
-        const minutes = date.getMinutes();
-        const roundedMinutes = Math.ceil(minutes / 15) * 15; // Округляем вверх
-        date.setMinutes(roundedMinutes);
-        date.setSeconds(0);
-        return date;
-    }
-
-    // Функция для генерации времени с шагом в 15 минут
-    function generateTimeOptions(selectId, startHour, endHour, selectedTime) {
-        const timeSelect = document.getElementById(selectId);
-        timeSelect.innerHTML = ''; // Очищаем список
-
-        for (let hour = startHour; hour < endHour; hour++) {
-            for (let minute = 0; minute < 60; minute += 15) {
-                const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-                const option = document.createElement('option');
-                option.value = timeString;
-                option.text = timeString;
-                if (timeString === selectedTime) {
-                    option.selected = true; // Выбираем текущее время по умолчанию
-                }
-                timeSelect.appendChild(option);
-            }
+    // Скрываем список парковочных мест при изменении параметров времени
+    function hideParkingSpots() {
+        const parkingSpotsTable = document.querySelector('.table'); // Находим таблицу с парковочными местами
+        if (parkingSpotsTable) {
+            parkingSpotsTable.style.display = 'none'; // Скрываем таблицу
         }
     }
 
-    // Устанавливаем значения по умолчанию
-    function setDefaultTimes() {
-        const now = new Date();
-        const roundedStartTime = roundToNearest15Minutes(now);
-        const endTime = new Date(roundedStartTime);
-        endTime.setHours(endTime.getHours() + 1); // Конец брони = начало + 1 час
+    // Назначаем обработчики событий для полей формы
+    function setupEventListeners() {
+        const startDateInput = document.getElementById('start-date');
+        const startTimeInput = document.getElementById('start-time');
+        const endDateInput = document.getElementById('end-date');
+        const endTimeInput = document.getElementById('end-time');
 
-        // Устанавливаем сегодняшнюю дату для начала и окончания
-        document.getElementById('start-date').value = now.toISOString().slice(0, 10);
-        document.getElementById('end-date').value = now.toISOString().slice(0, 10);
-
-        // Генерируем варианты времени для начала и окончания
-        generateTimeOptions('start-time', 0, 24, roundedStartTime.toTimeString().slice(0, 5));
-        generateTimeOptions('end-time', 0, 24, endTime.toTimeString().slice(0, 5));
+        startDateInput.addEventListener('change', hideParkingSpots);
+        startTimeInput.addEventListener('change', hideParkingSpots);
+        endDateInput.addEventListener('change', hideParkingSpots);
+        endTimeInput.addEventListener('change', hideParkingSpots);
     }
 
-    // Вызываем функцию при загрузке страницы
-    setDefaultTimes();
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function () {
+        setupEventListeners(); 
+    });
 </script>

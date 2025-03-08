@@ -12,6 +12,17 @@
         @TempData["Message"]
     </div>
 }
+
+<h3>Создать новую парковку</h3>
+<form asp-action="CreateParking" enctype="multipart/form-data" method="post">
+    <div>
+        <label asp-for="Address">Адрес</label>
+        <input asp-for="Address" />
+        <span asp-validation-for="Address" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Создать парковку</button>
+</form>
+
 @if (parkings != null && parkings.Length > 0)
 {
     <table class="table">
@@ -41,4 +52,9 @@
 else
 {
     <h2>Парковок нет</h2>
+
 }
+
+
+
+

@@ -12,8 +12,7 @@ namespace ParkingBooking.Web.Models
         public string Number { get; set; }
 
         [Required]
-        [StringLength(20)]
-        public string Status { get; set; }
+        public ParkingSpotStatus Status { get; set; }
         public string? Information { get; set; }
 
         public int ParkingId { get; set; }

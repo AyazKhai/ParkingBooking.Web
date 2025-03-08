@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParkingBooking.Web.Data;
 using ParkingBooking.Web.Models;
 
 namespace ParkingBooking.Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly ApplicationDbContext _applicationDbContext;
@@ -19,7 +21,7 @@ namespace ParkingBooking.Web.Controllers
             //var parkings = _applicationDbContext.Parkings.ToList();
             try
             {
-                ViewData["parkings"] = _applicationDbContext.Parkings.ToArray();
+                ViewData["parkings"] = await _applicationDbContext.Parkings.ToArrayAsync();
 
             }
             catch (Exception ex)
@@ -30,15 +32,126 @@ namespace ParkingBooking.Web.Controllers
         }
 
         public async Task<IActionResult> UsersInfo() {
-            var users = _applicationDbContext.Users.ToList();
+            var users = await _applicationDbContext.Users.ToListAsync();
             return View(users);
         }
 
         public async Task<IActionResult> BookingsInfo()
         {
-            var users = _applicationDbContext.Users.ToList();
+            var users = await _applicationDbContext.Users.ToArrayAsync();
             return View(users);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateParking(string address)
+        {
+            
+            if (string.IsNullOrEmpty(address))
+            {
+                TempData["Message"] = "Некоректный адрес";
+                return RedirectToAction("Index");
+            }
+
+            try
+            {
+                var parking = new Parking
+                {
+                    Address = address,
+                    Status = ParkingStatus.Inactive
+                };
+
+                _applicationDbContext.Parkings.Add(parking);
+                await _applicationDbContext.SaveChangesAsync();
+                TempData["Message"] = "Парковка создана";
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateException ex)
+            {
+                TempData["Message"] = "Ошибка при работе с базой данных";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Произошла непредвиденная ошибка";
+                return RedirectToAction("Index");
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteParking(int parkingId) 
+        {
+            var parking = await _applicationDbContext.Parkings
+                .FirstOrDefaultAsync(s => s.ParkingId == parkingId);
+
+            if (parking == null) 
+            {
+                TempData["Message"] = "Парковочное место не найдено.";
+                return RedirectToAction("Index");
+            }
+
+            try
+            {
+                _applicationDbContext.Parkings.Remove(parking);
+                await _applicationDbContext.SaveChangesAsync();
+
+                TempData["Message"] = "Парковка успешно удалена";
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateException ex)
+            {
+                TempData["Message"] = "Ошибка при удалкении данных в базе данных ";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Произошла ошибка";
+                return RedirectToAction("Index");
+            }
+
+        }
+        [HttpPost]
+        public async Task<IActionResult> EditParking(Parking parking) 
+        {
+            if (parking != null) 
+            {
+                try
+                {
+                    var existingParking = await _applicationDbContext.Parkings
+                       .FirstOrDefaultAsync(s => s.ParkingId == parking.ParkingId);
+
+                    if (existingParking == null)
+                    {
+                        TempData["Message"] = "Ошибка: Парковочное место не найдено.";
+                        return RedirectToAction("Index");
+                    }
+                    if (existingParking.Address == parking.Address && existingParking.Status == parking.Status) 
+                    {
+                        return RedirectToAction("GetParkingSpot", new { id = parking.ParkingId });
+                    }
+
+                    existingParking.Address = parking.Address;
+                    existingParking.Status = parking.Status;
+
+                    _applicationDbContext.Parkings.Update(existingParking);
+                    await _applicationDbContext.SaveChangesAsync();
+
+                    TempData["Message"] = "Данне  парковки успешно обновлено.";
+                    return RedirectToAction("GetParkingSpot", new {id = parking.ParkingId });
+                }
+                catch (DbUpdateException ex)
+                {
+                    TempData["Message"] = "Ошибка при изменении данных в базе данных ";
+                    return RedirectToAction("Index");
+                }
+                catch (Exception ex)
+                {
+                    TempData["Message"] = "Произошла ошибка";
+                    return RedirectToAction("Index");
+                }
+            }
+            return RedirectToAction("Index");
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> DeleteParkingSpot(int parkingSpotId) 
@@ -51,36 +164,31 @@ namespace ParkingBooking.Web.Controllers
                 return RedirectToAction("Index");
             }
 
-            if (spot != null) 
+            try
             {
-                try
-                {
-                    int id = spot.ParkingId;
-                    _applicationDbContext.ParkingSpots.Remove(spot);
-                    await _applicationDbContext.SaveChangesAsync();
+                int id = spot.ParkingId;
+                _applicationDbContext.ParkingSpots.Remove(spot);
+                await _applicationDbContext.SaveChangesAsync();
 
-                    TempData["Message"] = "Парковочное место успешно удалено.";
-                    return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
-                }
-                catch (DbUpdateException ex)
-                {
-                    TempData["Message"] = "Ошибка при удалкении данных в базе данных: ";
-                    return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
-                }
-                catch (Exception ex)
-                {
-                    TempData["Message"] = "Произошла ошибка";
-                    return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
-                }
+                TempData["Message"] = "Парковочное место успешно удалено.";
+                return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
             }
-            TempData["Message"] = "Данные не удалены";
-            return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
+            catch (DbUpdateException ex)
+            {
+                TempData["Message"] = "Ошибка при удалкении данных в базе данных ";
+                return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Произошла ошибка";
+                return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
+            }
             
 
         }
         [HttpPost]
         public async Task<IActionResult> CreateParkingSpot(ParkingSpot spot) {
-            var parkingExists = _applicationDbContext.Parkings.FirstOrDefault(p => p.ParkingId == spot.ParkingId);
+            var parkingExists = await _applicationDbContext.Parkings.FirstOrDefaultAsync(p => p.ParkingId == spot.ParkingId);
 
             if (parkingExists == null)
             {
@@ -94,7 +202,7 @@ namespace ParkingBooking.Web.Controllers
                 try
                 {
                     _applicationDbContext.ParkingSpots.Add(spot);
-                    _applicationDbContext.SaveChanges();
+                    await _applicationDbContext.SaveChangesAsync();
                     TempData["Message"] = "Данные добавлены";
                     return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
                 }
@@ -115,17 +223,17 @@ namespace ParkingBooking.Web.Controllers
             return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });
         }
         [HttpGet]
-        public IActionResult GetParkingSpot(int id)
+        public async Task<IActionResult> GetParkingSpot(int id)
         {
-            ViewData["parkingSpots"] = _applicationDbContext.ParkingSpots.Where(s => s.ParkingId == id).ToArray();
-            ViewData["parking"] = _applicationDbContext.Parkings.FirstOrDefault(p => p.ParkingId == id);
+            ViewData["parkingSpots"] = await _applicationDbContext.ParkingSpots.Where(s => s.ParkingId == id).ToArrayAsync();
+            ViewData["parking"] = await _applicationDbContext.Parkings.FirstOrDefaultAsync(p => p.ParkingId == id);
             return View();
         }
 
-        public IActionResult EditParkingSpot(int id) 
+        public async Task<IActionResult> EditParkingSpot(int id) 
         {
-            var parkingSpot = _applicationDbContext.ParkingSpots
-                .FirstOrDefault(s => s.ParkingSpotId == id);
+            var parkingSpot = await _applicationDbContext.ParkingSpots
+                .FirstOrDefaultAsync(s => s.ParkingSpotId == id);
 
             ViewData["parking"] = _applicationDbContext.Parkings.FirstOrDefault(p => p.ParkingId == parkingSpot.ParkingId);
             return View(parkingSpot);
@@ -137,8 +245,8 @@ namespace ParkingBooking.Web.Controllers
             {
                 try
                 {
-                    var existingSpot = _applicationDbContext.ParkingSpots
-                        .FirstOrDefault(s => s.ParkingSpotId == spot.ParkingSpotId);
+                    var existingSpot = await _applicationDbContext.ParkingSpots
+                .FirstOrDefaultAsync(s => s.ParkingSpotId == spot.ParkingSpotId);
 
                     if (existingSpot == null)
                     {
@@ -146,7 +254,6 @@ namespace ParkingBooking.Web.Controllers
                         return RedirectToAction("Index"); 
                     }
 
-                   // existingSpot = spot;
 
                     existingSpot.Number = spot.Number;
                     existingSpot.Status = spot.Status;
@@ -154,7 +261,7 @@ namespace ParkingBooking.Web.Controllers
                     existingSpot.ParkingId = spot.ParkingId;
 
                     _applicationDbContext.ParkingSpots.Update(existingSpot);
-                    _applicationDbContext.SaveChanges();
+                    await _applicationDbContext.SaveChangesAsync();
 
                     TempData["Message"] = "Парковочное место успешно обновлено.";
                     return RedirectToAction("GetParkingSpot", new { id = spot.ParkingId });

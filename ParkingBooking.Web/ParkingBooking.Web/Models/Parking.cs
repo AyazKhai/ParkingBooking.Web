@@ -8,6 +8,8 @@ namespace ParkingBooking.Web.Models
 
         [Required]
         public string Address { get; set; }
+        [Required]
+        public ParkingStatus Status { get; set; }
         public ICollection<ParkingSpot> ParkingSpots { get; set; } = new List<ParkingSpot>();
     }
 }

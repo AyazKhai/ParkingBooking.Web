@@ -18,7 +18,6 @@ namespace ParkingBooking.Web.Controllers
             _context = context;
             _configuration = configuration;
         }
-        //https://localhost:7096/Account/Register?name=testuser&password=TestPassword123
 
         [HttpGet]
         public IActionResult Register()
@@ -53,11 +52,10 @@ namespace ParkingBooking.Web.Controllers
         {
             var user = _context.Users.FirstOrDefault(u => u.Email == email);
 
-            Console.WriteLine(user.Role);
             if (user == null)
             {
                 ModelState.AddModelError("", "User not found");
-                return View();
+                return RedirectToAction("Register", "Account");
             }
 
             var passwordVerificationResult = new PasswordHasher<User>().VerifyHashedPassword(user, user.Password, password);
