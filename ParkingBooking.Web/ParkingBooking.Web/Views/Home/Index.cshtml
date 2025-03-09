@@ -1,8 +1,60 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
+    var bookings = ViewData["Bookings"] as Booking[];
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">
+        @TempData["Message"]
+    </div>
+}
+
+@if (bookings != null && bookings.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Адрес парковки</th>
+                <th>Номер парковочного места</th>
+                <th>Начало</th>
+                <th>Конец</th>
+                <th>Статус брони</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var booking in bookings)
+            {
+                var nowUtc = DateTime.UtcNow; 
+                var startUtc = booking.StartTime.ToUniversalTime(); 
+                var endUtc = booking.EndTime.ToUniversalTime();
+
+                var timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow"); 
+                var startLocal = TimeZoneInfo.ConvertTimeFromUtc(startUtc, timeZone);
+                var endLocal = TimeZoneInfo.ConvertTimeFromUtc(endUtc, timeZone);
+                <tr>
+                    <td>@booking.ParkingSpot.Parking.Address</td>
+                    <td>@booking.ParkingSpot.Number</td>
+                    <td>@startLocal.ToString("dd-MM-yyyy HH:mm")</td> 
+                    <td>@endLocal.ToString("dd-MM-yyyy HH:mm")</td>
+                    @if (startUtc > nowUtc)
+                    {
+                        <td>Ожидает</td>
+                    }
+                    else if (startUtc <= nowUtc && endUtc > nowUtc)
+                    {
+                        <td>В процессе</td>
+                    }
+                    else
+                    {
+                        <td>Завершено</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <h2>У вас нет активных броней.</h2>
+}

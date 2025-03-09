@@ -19,7 +19,9 @@ namespace ParkingBooking.Web.Controllers
         {
             try
             {
-                ViewData["parkings"] = _applicationDbContext.Parkings.Where(p => p.Status == ParkingStatus.Active).ToArray();
+                ViewData["parkings"] = await _applicationDbContext.Parkings.Where(p => p.Status == ParkingStatus.Active)
+                    .Include(p => p.ParkingSpots.Where(ps => ps.Status == ParkingSpotStatus.Free))
+                    .ToArrayAsync();
 
             }
             catch (Exception ex)
@@ -35,7 +37,7 @@ namespace ParkingBooking.Web.Controllers
         {
             try
             {
-                var parking = _applicationDbContext.Parkings.FirstOrDefault(p => p.ParkingId == id && p.Status == ParkingStatus.Active);
+                var parking = await _applicationDbContext.Parkings.FirstOrDefaultAsync(p => p.ParkingId == id && p.Status == ParkingStatus.Active);
                 if (parking == null)
                 {
                     TempData["Message"] = "Парковка не найдена.";
@@ -62,21 +64,20 @@ namespace ParkingBooking.Web.Controllers
 
                     if (start <= now || end <= now || end <= start)
                     {
-                        return View(); 
+                        return View();
                     }
 
                     //UTC
                     var startUtc = start.ToUniversalTime();
                     var endUtc = end.ToUniversalTime();
 
-                    //.Where(ps => ps.Status == "free" && ps.Status != "reserved")
                     var reservations = await _applicationDbContext.ParkingSpots
-                    .Where(ps => ps.Status == ParkingSpotStatus.Free)
-                    .Where(ps => !_applicationDbContext.Bookings
-                        .Any(r => r.ParkingSpotId == ps.ParkingSpotId &&
-                                  r.StartTime < endUtc &&
-                                  r.EndTime > startUtc))
-                    .ToListAsync();
+                    .Where(ps => ps.Status == ParkingSpotStatus.Free && ps.ParkingId == id)
+                     .Where(ps => !_applicationDbContext.Bookings
+                         .Any(r => r.ParkingSpotId == ps.ParkingSpotId &&
+                                   (r.StartTime < endUtc &&
+                                   r.EndTime > startUtc)))
+                     .ToListAsync();
 
                     return View(reservations); 
                 }
@@ -102,7 +103,6 @@ namespace ParkingBooking.Web.Controllers
                     !string.IsNullOrEmpty(endDate) && !string.IsNullOrEmpty(endTime))
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                Console.WriteLine(userId);
 
                 var start = DateTime.Parse($"{startDate} {startTime}");
                 var end = DateTime.Parse($"{endDate} {endTime}");
@@ -125,7 +125,7 @@ namespace ParkingBooking.Web.Controllers
                 var booking = new Booking
                 {
                     ParkingSpotId = id,
-                    UserId = 1,
+                    UserId = Convert.ToInt32(userId),
                     StartTime = startUtc,
                     EndTime = endUtc,
                     Status = BookingStatus.Confirmed
@@ -145,12 +145,6 @@ namespace ParkingBooking.Web.Controllers
             TempData["Message"] = "Бронирование успешно";
             return RedirectToAction("Index");
         }
-
-
-
-
-
-
 
     }
 }

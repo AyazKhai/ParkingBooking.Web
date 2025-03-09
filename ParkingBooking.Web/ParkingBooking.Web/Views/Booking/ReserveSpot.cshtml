@@ -1,4 +1,5 @@
-﻿@{
+﻿@model List<ParkingSpot>
+@{
     var parking = ViewData["parking"] as Parking;
 
     var startDate = ViewData["StartDate"] as string ?? DateTime.Now.ToString("yyyy-MM-dd");
@@ -8,7 +9,6 @@
 }
 
 @functions {
-    // Метод для округления времени до ближайших 15 минут
     public DateTime RoundToNearest15Minutes(DateTime dateTime)
     {
         int minutes = dateTime.Minute;
@@ -21,7 +21,6 @@
         return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0).AddMinutes(roundedMinutes);
     }
 
-    // Метод для генерации списка времени с шагом 15 минут
     public List<string> GenerateTimeOptions(string selectedTime)
     {
         var times = new List<string>();
@@ -43,6 +42,9 @@
         @TempData["Message"]
     </div>
 }
+
+<h2><b>@parking.Address</b></h2>
+
 <form action="/Booking/ReserveSpot" method="get">
     <input type="hidden" name="id" value="@parking.ParkingId" />
     <table>
@@ -92,15 +94,16 @@
 
     <button type="submit" class="btn btn-primary">Показать доступные места</button>
 </form>
+
 <h3>Доступные парковочные места:</h3>
-@if (Model != null)
+@if (Model != null && Model.Any())
 {
     <table class="table">
         <thead>
             <tr>
                 <th>Адрес</th>
                 <th>Описание</th>
-                <th>Действие</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -111,7 +114,7 @@
                     <td>@spot.Information</td>
                     <td>
                         <a asp-action="MakeReservation" 
-                            asp-route-id="@spot.ParkingSpotId"
+                            asp-route-id= "@spot.ParkingSpotId"
                            asp-route-startDate="@startDate"
                            asp-route-startTime="@startTime"
                            asp-route-endDate="@endDate"

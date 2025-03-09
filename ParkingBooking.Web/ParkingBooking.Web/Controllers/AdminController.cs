@@ -18,10 +18,11 @@ namespace ParkingBooking.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            //var parkings = _applicationDbContext.Parkings.ToList();
             try
             {
-                ViewData["parkings"] = await _applicationDbContext.Parkings.ToArrayAsync();
+                  ViewData["parkings"] = await _applicationDbContext.Parkings.Where(p => p.Status == ParkingStatus.Active)
+                    .Include(p => p.ParkingSpots)
+                    .ToArrayAsync();
 
             }
             catch (Exception ex)

@@ -3,9 +3,14 @@
     var parking = ViewData["parking"] as Parking;
 }
 
-<h2>Редактирование парковочного места</h2>
+<h2>Редактирование парковочного места </h2>
 
 <form asp-action="EditParkingSpot" enctype="multipart/form-data" method="post">
+
+    <div>
+        <input type="hidden" asp-for="ParkingSpotId"/>
+        <span asp-validation-for="ParkingSpotId" class="text-danger"></span>
+    </div>
 
     <div>
         <label asp-for="Number">Номер парковочного места</label>
@@ -14,9 +19,17 @@
     </div>
 
     <div>
-        <label asp-for="Status">Статус</label>
-        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ParkingSpotStatus>()" class="form-control"></select>
-        <span asp-validation-for="Status" class="text-danger"></span>
+        <select asp-for="Status" class="form-control">
+            <option value="Status.ToString()" selected>@Model.Status.ToString()</option>
+
+            @foreach (var status in Html.GetEnumSelectList<ParkingSpotStatus>())
+            {
+                if (status.Text != Model.Status.ToString())
+                {
+                    <option value="@status.Text">@status.Text</option>
+                }
+            }
+        </select>
     </div>
 
     <div>

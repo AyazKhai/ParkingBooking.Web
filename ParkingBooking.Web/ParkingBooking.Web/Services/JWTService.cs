@@ -15,7 +15,6 @@ namespace ParkingBooking.Web.Services
 
         public JWTService(IConfiguration configuration)
         {
-            // Получаем настройки JWT из конфигурации
             _secretKey = configuration["JwtSettings:Secret"];
             _issuer = configuration["JwtSettings:Issuer"];
             _audience = configuration["JwtSettings:Audience"];
