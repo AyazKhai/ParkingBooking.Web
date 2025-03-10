@@ -12,8 +12,8 @@ using ParkingBooking.Web.Data;
 namespace ParkingBooking.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250309233724_ParkingSpotUnique")]
-    partial class ParkingSpotUnique
+    [Migration("20250310173430_RefreshTokenUserRlback")]
+    partial class RefreshTokenUserRlback
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -132,6 +132,13 @@ namespace ParkingBooking.Web.Migrations
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Role")
                         .IsRequired()

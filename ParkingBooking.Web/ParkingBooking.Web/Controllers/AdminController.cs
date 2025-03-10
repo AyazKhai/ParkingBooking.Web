@@ -11,10 +11,10 @@ namespace ParkingBooking.Web.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
-        private readonly ILogger<BookingController> _logger;
+        private readonly ILogger<AdminController> _logger;
         private readonly ApplicationDbContext _applicationDbContext;
 
-        public AdminController(ApplicationDbContext applicationDbContext, ILogger<BookingController> logger)
+        public AdminController(ApplicationDbContext applicationDbContext, ILogger<AdminController> logger)
         {
             _applicationDbContext = applicationDbContext;
             _logger = logger;

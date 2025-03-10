@@ -21,5 +21,8 @@ namespace ParkingBooking.Web.Models
 
 
         public string Role { get; set; }
+
+        public string RefreshToken { get; set; } 
+        public DateTime? RefreshTokenExpiry { get; set; } 
     }
 }

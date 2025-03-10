@@ -6,12 +6,6 @@
         <li class="nav-item">
             <a class="nav-link text-dark" asp-controller="Account" asp-action="Logout">Logout</a>
         </li>
-        @if (User.IsInRole("Admin"))
-        {
-            <li class="nav-item">
-                <a class="nav-link text-dark" asp-controller="Admin" asp-action="Index">Admin Panel</a>
-            </li>
-        }
     }
     else
     {
@@ -23,3 +17,104 @@
         </li>
     }
 </ul>
+
+<script>
+    // Функция для получения значения cookie
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            const cookieValue = parts.pop().split(';').shift();
+            return cookieValue;
+        } else {
+            
+            return null;
+        }
+    }
+
+    async function refreshToken() {
+        const refreshToken = getCookie("RefreshToken");
+
+        if (!refreshToken) {
+            //console.log("Refresh токен не найден. Перенаправление на страницу входа.");
+            window.location.href = "/Account/Login";
+            return;
+        }
+
+        try {
+            const response = await fetch("/Account/RefreshToken", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                credentials: "include"
+            });
+
+            if (response.ok) {
+                //console.log("Токен успешно обновлён:");
+                console.log("Cookies обновлены.");
+            } else {
+                // console.warn("Не удалось обновить токен. Перенаправление на вход.");
+                window.location.href = "/Account/Login";
+            }
+        } catch (error) {
+            //console.error("Ошибка при обновлении токена:", error);
+            window.location.href = "/Account/Login";
+        }
+    }
+
+    function scheduleTokenRefresh() {
+        const token = getCookie("JWT");
+
+        if (!token) {
+            //console.log("JWT токен не найден. Обновление не требуется.");
+            return;
+        }
+
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+            //console.error("Некорректный формат JWT-токена.");
+            return;
+        }
+
+        try {
+            const payloadBase64 = tokenParts[1];
+            const decodedPayload = base64UrlDecode(payloadBase64); 
+            const payload = JSON.parse(decodedPayload);
+
+            // Получаем время истечения токена
+            const expiry = payload.exp * 1000; 
+            const currentTime = Date.now();
+            const timeUntilExpiry = expiry - currentTime;
+
+            
+            if (timeUntilExpiry <= 90000) {
+                console.log("Токен истёк или истекает в ближайшее время. Пытаемся обновить...");
+                refreshToken(); 
+            } else {
+                console.log("Токен действителен. Обновление не требуется.");
+            }
+        } catch (error) {
+            console.error("Ошибка при проверке срока действия токена:", error);
+            window.location.href = "/Account/Login"; 
+        }
+    }
+
+    function base64UrlDecode(str) {
+        str = str.replace(/-/g, '+').replace(/_/g, '/');
+
+        while (str.length % 4) {
+            str += '=';
+        }
+
+        return atob(str);
+    }
+
+    // Запуск обновления токена при загрузке страницы
+    document.addEventListener("DOMContentLoaded", () => {
+        //console.log("Страница загружена. Проверка и планирование обновления токена...");
+        scheduleTokenRefresh();
+    });
+</script>
+
