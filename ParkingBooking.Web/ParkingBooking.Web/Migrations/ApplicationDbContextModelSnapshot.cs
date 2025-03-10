@@ -47,6 +47,10 @@ namespace ParkingBooking.Web.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ParkingSpotId");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("Bookings");
                 });
 
@@ -97,10 +101,8 @@ namespace ParkingBooking.Web.Migrations
 
                     b.HasKey("ParkingSpotId");
 
-                    b.HasIndex("Number")
+                    b.HasIndex("ParkingId", "Number")
                         .IsUnique();
-
-                    b.HasIndex("ParkingId");
 
                     b.ToTable("ParkingSpots");
                 });
@@ -138,6 +140,25 @@ namespace ParkingBooking.Web.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ParkingBooking.Web.Models.Booking", b =>
+                {
+                    b.HasOne("ParkingBooking.Web.Models.ParkingSpot", "ParkingSpot")
+                        .WithMany()
+                        .HasForeignKey("ParkingSpotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ParkingBooking.Web.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParkingSpot");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ParkingBooking.Web.Models.ParkingSpot", b =>

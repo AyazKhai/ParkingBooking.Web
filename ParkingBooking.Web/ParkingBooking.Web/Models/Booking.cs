@@ -10,5 +10,6 @@
         public BookingStatus Status { get; set; }
 
         public ParkingSpot ParkingSpot { get; set; }
+        public User User { get; set; }
     }
 }

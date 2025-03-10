@@ -97,6 +97,7 @@
                     <td>
                         <form method="post" asp-action="DeleteParkingSpot" asp-controller="Admin">
                             <input type="hidden" name="ParkingSpotId" value="@spot.ParkingSpotId" />
+                            <input type="hidden" name="ParkingSpotId" value="@parking.ParkingId" />
                             <button type="submit" class="btn btn-danger">Удалить</button>
                         </form>
                     </td>

@@ -30,6 +30,7 @@
             <tr>
                 <th>Адрес</th>
                 <th>Всего мест</th>
+                <th>Статус</th>
                 <th></th>
             </tr>
         </thead>
@@ -39,6 +40,7 @@
                 <tr>
                     <td>@parking.Address</td>
                     <td>@parking.ParkingSpots.Count</td>
+                    <td>@parking.Status</td>
                     <td>
                         <form method="get" action="/Admin/GetParkingSpot">
                             <input type="hidden" name="id" value="@parking.ParkingId" />

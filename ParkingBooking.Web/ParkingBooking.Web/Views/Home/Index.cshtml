@@ -37,19 +37,35 @@
                     <td>@booking.ParkingSpot.Number</td>
                     <td>@startLocal.ToString("dd-MM-yyyy HH:mm")</td> 
                     <td>@endLocal.ToString("dd-MM-yyyy HH:mm")</td>
-                    @if (startUtc > nowUtc)
+                    @if (booking.Status != BookingStatus.Cancelled)
                     {
-                        <td>Ожидает</td>
-                    }
-                    else if (startUtc <= nowUtc && endUtc > nowUtc)
-                    {
-                        <td>В процессе</td>
+                        @if (startUtc > nowUtc)
+                        {
+                            <td>Ожидает</td>
+                            <td>
+                                <form method="post" asp-action="CancelBooking" asp-controller="Home">
+                                    <input type="hidden" name="BookingId" value="@booking.Id">
+                                    <button type="submit" class="btn btn-danger">Отменить</button>
+                                </form>
+                            </td>
+                        }
+                        else if (startUtc <= nowUtc && endUtc > nowUtc)
+                        {
+                            <td>В процессе</td>
+                        }
+                        else
+                        {
+                            <td>Завершено</td>
+                        }
                     }
                     else
                     {
-                        <td>Завершено</td>
+                        <td>Отменен</td>
                     }
+                    
                 </tr>
+
+
             }
         </tbody>
     </table>

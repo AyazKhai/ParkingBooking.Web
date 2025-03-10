@@ -1,0 +1,120 @@
+﻿@model Booking[]
+@{
+}
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">
+        @TempData["Message"]
+    </div>
+}
+
+<style>
+    /* Добавляем отступы между строками и рамку для каждой строки */
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 10px; /* Расстояние между строками */
+    }
+
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd; /* Рамка для ячеек */
+        text-align: left;
+    }
+
+    tr {
+        background-color: #f9f9f9; /* Фон строки */
+        border-radius: 5px; /* Закругленные углы для строки */
+    }
+
+    /* Убираем рамку у заголовков */
+    th {
+        border: none;
+        background-color: #f1f1f1;
+    }
+
+    /* Стиль для кнопки */
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+</style>
+
+<table>
+    <thead>
+        <th>Имя</th>
+        <th>Почта</th>
+        <th>Номер телефона</th>
+        <th>Адрес парковки</th>
+        <th>Номер парковочного места</th>
+        <th>Начало</th>
+        <th>Конец</th>
+        <th>Статус</th>
+    </thead>
+    <tbody>
+        @foreach (var booking in Model)
+        {
+            var nowUtc = DateTime.UtcNow; 
+            var startUtc = booking.StartTime.ToUniversalTime(); 
+            var endUtc = booking.EndTime.ToUniversalTime();
+
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Moscow"); 
+            var startLocal = TimeZoneInfo.ConvertTimeFromUtc(startUtc, timeZone);
+            var endLocal = TimeZoneInfo.ConvertTimeFromUtc(endUtc, timeZone);
+            <tr>
+                <td>@booking.User.Name</td>
+                <td>@booking.User.Email</td>
+                <td>@booking.User.PhoneNumber</td>
+                <td>@booking.ParkingSpot.Parking.Address</td>
+                <td>@booking.ParkingSpot.Number</td>
+                <td>@startLocal.ToString("dd-MM-yyyy HH:mm")</td> 
+                <td>@endLocal.ToString("dd-MM-yyyy HH:mm")</td>
+                
+                @if (booking.Status != BookingStatus.Cancelled)
+                {
+                    if (startUtc > nowUtc)
+                    {
+                        <td>Ожидает</td>
+                        <td>
+                            <form method="post" asp-action="CancelBooking" asp-controller="Admin">
+                                <input type="hidden" name="BookingId" value="@booking.Id">
+                                <button type="submit" class="btn btn-danger">Отменить</button>
+                            </form>
+                        </td>
+                    }
+                    else if (startUtc <= nowUtc && endUtc > nowUtc)
+                    {
+                        <td>В процессе</td>
+                        <td>
+                            <form method="post" asp-action="CancelBooking" asp-controller="Admin">
+                                <input type="hidden" name="BookingId" value="@booking.Id">
+                                <button type="submit" class="btn btn-danger">Отменить</button>
+                            </form>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>Завершено</td>
+                    }
+
+                }
+                else
+                {
+                    <td>Отменен</td>   
+                }
+
+
+             </tr>
+        }
+    </tbody>
+</table>
+    

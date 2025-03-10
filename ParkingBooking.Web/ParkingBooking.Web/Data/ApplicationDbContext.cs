@@ -26,15 +26,12 @@ namespace ParkingBooking.Web.Data
                 .HasMany(p => p.ParkingSpots)
                 .WithOne(ps => ps.Parking)
                 .HasForeignKey(ps => ps.ParkingId)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ParkingSpot>()
-            .HasIndex(p => p.Number)
+            .HasIndex(p => new { p.ParkingId, p.Number }) 
             .IsUnique();
 
-            modelBuilder.Entity<ParkingSpot>()
-                .HasIndex(p => p.Number)
-                .IsUnique();
 
         }
 

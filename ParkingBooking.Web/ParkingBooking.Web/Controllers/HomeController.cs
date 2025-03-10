@@ -27,7 +27,7 @@ namespace ParkingBooking.Web.Controllers
                 try
                 {
                     var bookings = await _applicationDbContext.Bookings
-                    .Where(b => b.UserId == id)
+                    .Where(b => b.UserId == id && b.Status == BookingStatus.Confirmed)
                     .Include(b => b.ParkingSpot)
                         .ThenInclude(ps => ps.Parking)
                     .OrderByDescending(b => b.StartTime)
@@ -52,6 +52,39 @@ namespace ParkingBooking.Web.Controllers
             }
 
             return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CancelBooking(int bookingId) 
+        {
+            try
+            {
+                var booking = await _applicationDbContext.Bookings
+                    .Where(b => b.Id == bookingId)
+                    .FirstOrDefaultAsync();
+
+                if (booking == null)
+                {
+                    TempData["Message"] = "Бронирование не найдено.";
+                    return RedirectToAction("Index");
+                }
+                booking.Status = BookingStatus.Cancelled;
+
+                _applicationDbContext.Bookings.Update(booking);
+                await _applicationDbContext.SaveChangesAsync();
+
+                return RedirectToAction("Index");
+            }
+            catch (DbUpdateException ex)
+            {
+                TempData["Message"] = "Ошибка при удалении данных в базе данных ";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Произошла ошибка";
+                return RedirectToAction("Index");
+            }
         }
 
         public IActionResult Privacy()
