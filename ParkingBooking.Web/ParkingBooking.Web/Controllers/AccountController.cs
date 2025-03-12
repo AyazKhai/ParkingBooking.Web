@@ -7,6 +7,9 @@ using System.Configuration;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace ParkingBooking.Web.Controllers
 {
@@ -34,7 +37,6 @@ namespace ParkingBooking.Web.Controllers
         [HttpPost]
         public IActionResult Register(User user) 
         {
-            user.Role =  "User";
             ModelState.Remove("Role");
             ModelState.Remove("RefreshToken");
             ModelState.Remove("RefreshTokenExpiry");
@@ -43,7 +45,7 @@ namespace ParkingBooking.Web.Controllers
             {
                 try
                 {
-                    user.Role = "User";
+                    user.Role = Roles.User;
 
                     var passwordHash = new PasswordHasher<User>().HashPassword(user, user.Password);
                     user.Password = passwordHash;
@@ -80,16 +82,15 @@ namespace ParkingBooking.Web.Controllers
             return View(); 
         }
         [HttpPost]
-        public IActionResult Login(string email, string password) 
+        public async Task<IActionResult> Login(string email, string password) 
         {
             try 
             {
-                var user = _context.Users.FirstOrDefault(u => u.Email == email);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
                 if (user == null)
                 {
                     _logger.LogWarning("Пользователь с email {Email} не найден.", email);
-                    ModelState.AddModelError("", "User not found");
                     return RedirectToAction("Register", "Account");
                 }
 
@@ -98,17 +99,17 @@ namespace ParkingBooking.Web.Controllers
                 if (passwordVerificationResult != PasswordVerificationResult.Success)
                 {
                     _logger.LogWarning("Неверный пароль для пользователя {Email}.", email);
-                    ModelState.AddModelError("", "Invalid password");
+                    TempData["Message"] =  "Неверный пароль";
                     return View();
                 }
 
                 var accestoken = _jwtService.GenerateToken(user);
                 var refreshToken = _jwtService.GenerateRefreshToken();
                 user.RefreshToken = refreshToken;
-                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"));
 
                 _context.Users.Update(user);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 Response.Cookies.Append("JWT", accestoken, new CookieOptions
                 {
@@ -125,7 +126,7 @@ namespace ParkingBooking.Web.Controllers
                     Secure = true,
                     SameSite = SameSiteMode.Strict,
                     Path = "/",
-                    Expires = DateTime.UtcNow.AddDays(7) 
+                    Expires = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"))
                 });
 
                 _logger.LogInformation("Пользователь {Email} успешно авторизован.", email);
@@ -170,10 +171,10 @@ namespace ParkingBooking.Web.Controllers
                     _logger.LogInformation("Пользователь {UserId} успешно вышел из системы.", userId);
                 }
 
-                // Удаляем access token и refresh token из cookies
                 Response.Cookies.Delete("JWT");
                 Response.Cookies.Delete("RefreshToken");
 
+                _logger.LogInformation("Куки для пользователя {UserId} удалены", userId);
                 return RedirectToAction("Index", "Home");
             }
             catch (DbUpdateException ex)
@@ -211,7 +212,7 @@ namespace ParkingBooking.Web.Controllers
                 var userId = int.Parse(principal.FindFirst(ClaimTypes.NameIdentifier).Value);
 
                 var user = await _context.Users.FindAsync(userId);
-                if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.UtcNow)
+                if (user == null  || user.RefreshTokenExpiry <= DateTime.UtcNow)
                 {
                     _logger.LogWarning("Недействительный или истёкший refresh token для пользователя {UserId}.", userId);
                     return Unauthorized();
@@ -221,7 +222,7 @@ namespace ParkingBooking.Web.Controllers
 
                 var newRefreshToken = _jwtService.GenerateRefreshToken();
                 user.RefreshToken = newRefreshToken;
-                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+                user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"));
 
                 _context.Users.Update(user);
                 await _context.SaveChangesAsync();
@@ -241,7 +242,7 @@ namespace ParkingBooking.Web.Controllers
                     Secure = true,
                     SameSite = SameSiteMode.Strict,
                     Path = "/",
-                    Expires = DateTime.UtcNow.AddDays(7) // Срок действия refresh token
+                    Expires = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"))
                 });
 
                 _logger.LogInformation("Токены успешно обновлены для пользователя {UserName} {UseerEamil}.", user.Name, user.Email);
@@ -267,6 +268,196 @@ namespace ParkingBooking.Web.Controllers
             
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CheckUser()
+        {
+            try
+            {
+                var accessToken = Request.Cookies["JWT"];
+                var refreshToken = Request.Cookies["RefreshToken"];
+
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                {
+                    _logger.LogWarning("Отсутствует access token или refresh token.");
+                    return Json(new { isChangedOrDeleted = false }); // Пользователь не авторизован
+                }
+
+                refreshToken = Uri.UnescapeDataString(refreshToken);
+
+                var principal = _jwtService.GetPrincipalFromExpiredToken(accessToken);
+                var userId = int.Parse(principal.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var user = await _context.Users.FindAsync(userId);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Пользователь {UserId} не найден в базе данных.", userId);
+                    return Json(new { isChangedOrDeleted = true });
+                }
+
+                if (user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.UtcNow)
+                {
+                    _logger.LogWarning("Недействительный или истёкший refresh token для пользователя {UserId}.", userId);
+                    return Json(new { isChangedOrDeleted = true });
+                }
+
+                return Json(new { isChangedOrDeleted = false });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при проверке пользователя.");
+                return Json(new { isChangedOrDeleted = true }); 
+            }
+        }
+
+        public IActionResult AccountInfo()
+        {
+            try
+            {
+                if (!User.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("Попытка получить информацию о пользователе неаутентифицированным пользователем.");
+                    return RedirectToAction("Index", "Home");
+                }
+
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var user = _context.Users.Find(userId);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Пользователь с идентификатором {UserId} не найден.", userId);
+                    return RedirectToAction("Index", "Home");
+                }
+
+                return View(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Произошла непредвиденная ошибка при получении информации о пользователе.");
+                TempData["Message"] = "Произошла непредвиденная ошибка";
+                return RedirectToAction("Index", "Home");
+            }
+        }
+
+
+        public async Task<IActionResult> EditUser(int id)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
+                return View(user);
+            }
+            catch (DbUpdateException ex)
+            {
+                TempData["Message"] = "Ошибка при работе с базой данных";
+                return RedirectToAction("AccountInfo");
+            }
+            catch (Exception ex)
+            {
+                TempData["Message"] = "Произошла непредвиденная ошибка";
+                return RedirectToAction("AccountInfo");
+            }
+
+        }
+        [HttpPost]
+        public async Task<IActionResult> EditUser(User existuser)
+        {
+            if (existuser != null)
+            {
+                try
+                {
+                    var accessToken = Request.Cookies["JWT"];
+                    var refreshToken = Request.Cookies["RefreshToken"];
+
+                    if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                    {
+                        _logger.LogWarning("Отсутствует access token или refresh token.");
+                        return RedirectToAction("AccountInfo");
+                    }
+
+                    refreshToken = Uri.UnescapeDataString(refreshToken);
+
+                    var principal = _jwtService.GetPrincipalFromExpiredToken(accessToken);
+
+                    var user = await _context.Users.FindAsync(existuser.UserId);
+                    if (user == null || user.RefreshToken != refreshToken || user.RefreshTokenExpiry <= DateTime.UtcNow)
+                    {
+                        _logger.LogWarning("Недействительный или истёкший refresh token для пользователя {UserId}.", existuser.UserId);
+                        return RedirectToAction("AccountInfo");
+                    }
+
+                    var newAccessToken = _jwtService.GenerateToken(user);
+
+                    var newRefreshToken = _jwtService.GenerateRefreshToken();
+                    user.RefreshToken = newRefreshToken;
+                    user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"));
+                    user.Name = existuser.Name;
+                    user.Email = existuser.Email;
+                    user.PhoneNumber = existuser.PhoneNumber;
+
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Данные успешно обновлены для пользователя {UserName} {UseerEamil}.", user.Name, user.Email);
+                    return RedirectToAction("AccountInfo");
+                }
+                catch (DbUpdateException ex)
+                {
+                    _logger.LogError(ex, "Ошибка при обновлении данных в базе данных");
+                    TempData["Message"] = "Ошибка при обновлении данных в базе данных";
+                    return RedirectToAction("AccountInfo");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Произошла непредвиденная ошибка при попытке обновления данных пользователя");
+                    TempData["Message"] = "Произошла непредвиденная ошибка при попытке обновления данных пользователя";
+                    return RedirectToAction("AccountInfo");
+                }
+
+            }
+            _logger.LogWarning("Объект для обновления данных был null.");
+            return RedirectToAction("AccountInfo");
+
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteUser()
+        {
+            try
+            {
+                var userid = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userid);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Пользователь не найден. {UserId}", userid);
+                    TempData["Message"] = "пользователь не найден.";
+                    return RedirectToAction("AccountInfo");
+                }
+
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+
+
+                _logger.LogInformation("Пользователь {Name} успешно удален", user.Name);
+                TempData["Message"] = "Пользователь успешно удален.";
+                return RedirectToAction("AccountInfo");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Ошибка при работе с базой данных");
+                TempData["Message"] = "Ошибка при удалении данных в базе данных ";
+                return RedirectToAction("AccountInfo");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Произошла непредвиденная ошибка при удалении пользователя");
+                TempData["Message"] = "Произошла ошибка при удалении.";
+                return RedirectToAction("AccountInfo");
+            }
+        }
     }
 
 }

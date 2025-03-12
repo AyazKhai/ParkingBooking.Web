@@ -15,41 +15,48 @@
 }
 <h2><b>@parking.Address</b></h2>
 
-<h3>Редактировать парковку</h3>
 
 
-<form asp-action="EditParking" method="post">
-    <input type="hidden" name="ParkingId" value="@parking.ParkingId" /> 
+@if (User.IsInRole(Roles.Admin))
+{
+    <h3>Редактировать парковку</h3>
 
-    <div>
-        <label for="Address">Адрес парковки</label>
-        <input type="text" id="Address" name="Address" value="@parking.Address" class="form-control" />
-        <span class="text-danger" data-valmsg-for="Address"></span>
-    </div>
+    <form asp-action="EditParking" method="post">
+        <input type="hidden" name="ParkingId" value="@parking.ParkingId" /> 
 
-    <div>
-        <label for="Status">Статус парковки</label>
-        <select asp-for="Status" class="form-control">
-            <option value="@parking.Status.ToString()" selected>@parking.Status.ToString()</option>
+        <div>
+            <label for="Address">Адрес парковки</label>
+            <input type="text" id="Address" name="Address" value="@parking.Address" class="form-control" />
+            <span class="text-danger" data-valmsg-for="Address"></span>
+        </div>
 
-            @foreach (var status in Html.GetEnumSelectList<ParkingStatus>())
-            {
-                if (status.Text != parking.Status.ToString())
+        <div>
+            <label for="Status">Статус парковки</label>
+            <select asp-for="Status" class="form-control">
+                <option value="@parking.Status.ToString()" selected>@parking.Status.ToString()</option>
+
+                @foreach (var status in Html.GetEnumSelectList<ParkingStatus>())
                 {
-                    <option value="@status.Text">@status.Text</option>
+                    if (status.Text != parking.Status.ToString())
+                    {
+                        <option value="@status.Text">@status.Text</option>
+                    }
                 }
-            }
-        </select>
+            </select>
 
-        <span class="text-danger" data-valmsg-for="Status"></span>
-    </div>
+            <span class="text-danger" data-valmsg-for="Status"></span>
+        </div>
 
-    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-</form>
-<form method="post" asp-action="DeleteParking" asp-controller="Admin" onsubmit="return confirmDelete()">
-    <input type="hidden" name="ParkingId" value="@parking.ParkingId" />
-    <button type="submit" class="btn btn-danger">Удалить</button>
-</form>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </form>
+
+    <form method="post" asp-action="DeleteParking" asp-controller="Admin" onsubmit="return confirmDelete()">
+        <input type="hidden" name="ParkingId" value="@parking.ParkingId" />
+        <button type="submit" class="btn btn-danger">Удалить</button>
+    </form>
+
+   
+}
 
 <h3>Создать парковочное место</h3>
 <form asp-action="CreateParkingSpot" enctype="multipart/form-data" method="post">
@@ -75,6 +82,9 @@
     <button type="submit" class="btn btn-primary">Создать парковочное место</button>
 </form>
 
+
+
+
 @if (parkingSpots != null && parkingSpots.Length > 0)
 {
     <table class="table">
@@ -97,7 +107,7 @@
                     <td>
                         <form method="post" asp-action="DeleteParkingSpot" asp-controller="Admin">
                             <input type="hidden" name="ParkingSpotId" value="@spot.ParkingSpotId" />
-                            <input type="hidden" name="ParkingSpotId" value="@parking.ParkingId" />
+                            <input type="hidden" name="ParkingId" value="@parking.ParkingId" />
                             <button type="submit" class="btn btn-danger">Удалить</button>
                         </form>
                     </td>

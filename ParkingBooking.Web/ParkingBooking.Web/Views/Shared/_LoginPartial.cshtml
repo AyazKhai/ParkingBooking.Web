@@ -4,6 +4,9 @@
     @if (User.Identity.IsAuthenticated)
     {
         <li class="nav-item">
+            <a class="nav-link text-dark" asp-controller="Account" asp-action="AccountInfo">@User.Identity.Name</a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link text-dark" asp-controller="Account" asp-action="Logout">Logout</a>
         </li>
     }
@@ -55,16 +58,20 @@
                 //console.log("Токен успешно обновлён:");
                 console.log("Cookies обновлены.");
             } else {
+                document.cookie = "JWT=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+            document.cookie = "RefreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;";
                 // console.warn("Не удалось обновить токен. Перенаправление на вход.");
                 window.location.href = "/Account/Login";
             }
         } catch (error) {
+            document.cookie = "JWT=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+            document.cookie = "RefreshToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;";
             //console.error("Ошибка при обновлении токена:", error);
             window.location.href = "/Account/Login";
         }
     }
 
-    function scheduleTokenRefresh() {
+    async function scheduleTokenRefresh() {
         const token = getCookie("JWT");
 
         if (!token) {
@@ -93,7 +100,29 @@
                 console.log("Токен истёк или истекает в ближайшее время. Пытаемся обновить...");
                 refreshToken(); 
             } else {
-                console.log("Токен действителен. Обновление не требуется.");
+                console.log("Токен действителен. Проверяем, изменен ли пользователь...");
+
+            const response = await fetch("/Account/CheckUser", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest"
+                },
+                credentials: "include"
+                });
+
+            if (response.ok) {
+                const result = await response.json();
+                    if (result.isChangedOrDeleted) {
+                    console.log("Пользователь изменен или удален. Обновляем токен...");
+                    await refreshToken();
+                    } else {
+                    console.log("Пользователь не изменен. Обновление не требуется.");
+                }
+            } else {
+                console.error("Ошибка при проверке пользователя.");
+                window.location.href = "/Account/Login";
+                }
             }
         } catch (error) {
             console.error("Ошибка при проверке срока действия токена:", error);
@@ -111,7 +140,6 @@
         return atob(str);
     }
 
-    // Запуск обновления токена при загрузке страницы
     document.addEventListener("DOMContentLoaded", () => {
         //console.log("Страница загружена. Проверка и планирование обновления токена...");
         scheduleTokenRefresh();

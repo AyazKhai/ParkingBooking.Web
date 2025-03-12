@@ -36,11 +36,13 @@ namespace ParkingBooking.Web.Controllers
                 }
                 catch (DbUpdateException ex)
                 {
+                    _logger.LogError(ex, "Ошибка при работе с базой данных");
                     TempData["Message"] = "Ошибка при работе с базой данных";
                     return RedirectToAction("Index");
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Произошла непредвиденная ошибка");
                     TempData["Message"] = "Произошла непредвиденная ошибка";
                     return RedirectToAction("Index");
                 }
@@ -48,44 +50,13 @@ namespace ParkingBooking.Web.Controllers
             }
             else 
             {
+                _logger.LogWarning("Пользователь не аутентифицирован");
                 return RedirectToAction("Login", "Account");
             }
-
             return View();
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CancelBooking(int bookingId) 
-        {
-            try
-            {
-                var booking = await _applicationDbContext.Bookings
-                    .Where(b => b.Id == bookingId)
-                    .FirstOrDefaultAsync();
-
-                if (booking == null)
-                {
-                    TempData["Message"] = "Бронирование не найдено.";
-                    return RedirectToAction("Index");
-                }
-                booking.Status = BookingStatus.Cancelled;
-
-                _applicationDbContext.Bookings.Update(booking);
-                await _applicationDbContext.SaveChangesAsync();
-
-                return RedirectToAction("Index");
-            }
-            catch (DbUpdateException ex)
-            {
-                TempData["Message"] = "Ошибка при удалении данных в базе данных ";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                TempData["Message"] = "Произошла ошибка";
-                return RedirectToAction("Index");
-            }
-        }
+        
 
         public IActionResult Privacy()
         {

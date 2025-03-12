@@ -1,0 +1,47 @@
+﻿
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-info">
+        @TempData["Message"]
+    </div>
+}
+@if (Model != null)
+{
+    <h2>@Model.Name </h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Number</th>
+                <th>Email</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@Model.Name</td>
+                <td>@Model.PhoneNumber</td>
+                <td>@Model.Email</td>
+                <td>
+                    <form method="post" asp-action="DeleteUser" asp-controller="Account" onsubmit="return confirmDelete()">
+                        <button type="submit" class="btn btn-danger">Удалить</button>
+                    </form>
+                </td>
+                <td>
+                    <a asp-action="EditUser" asp-controller="Account" asp-route-id="@Model.UserId">Редактировать</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Пользователи не найдены.</p>
+}
+
+<script>
+    function confirmDelete() {
+        return confirm("Вы уверены, что хотите удалить аккаунт?");
+    }
+</script>

@@ -8,7 +8,6 @@ using System.Security.Claims;
 
 namespace ParkingBooking.Web.Controllers
 {
-    
     public class BookingController : Controller
     {
         private readonly ILogger<BookingController> _logger;
@@ -28,7 +27,7 @@ namespace ParkingBooking.Web.Controllers
                     .Include(p => p.ParkingSpots.Where(ps => ps.Status == ParkingSpotStatus.Free))
                     .ToArrayAsync();
                 ViewData["parkings"] = parkings;
-                _logger.LogInformation("Парковки загружены. {Count} парковок", parkings.Length);
+                _logger.LogInformation("Парковки загружены {Count} парковок", parkings.Length);
             }
             catch (DbUpdateException ex)
             {
@@ -43,6 +42,42 @@ namespace ParkingBooking.Web.Controllers
             return View();
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CancelBooking(int bookingId)
+        {
+            try
+            {
+                var booking = await _applicationDbContext.Bookings
+                    .Where(b => b.Id == bookingId)
+                    .Include(b => b.ParkingSpot)
+                    .FirstOrDefaultAsync();
+
+                if (booking == null)
+                {
+                    TempData["Message"] = "Бронирование не найдено.";
+                    return RedirectToAction("Index", "Home");
+                }
+                booking.Status = BookingStatus.Cancelled;
+
+                _applicationDbContext.Bookings.Update(booking);
+                await _applicationDbContext.SaveChangesAsync();
+
+                _logger.LogInformation("Бронирование праковочного места {number} - {start}/{end} успешно отменено ", booking.ParkingSpot.Number, booking.StartTime, booking.EndTime);
+                return RedirectToAction("Index", "Home");
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Ошибка при удалении данных в базе данных ");
+                TempData["Message"] = "Ошибка при удалении данных в базе данных ";
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Произошла ошибка");
+                TempData["Message"] = "Произошла ошибка";
+                return RedirectToAction("Index", "Home");
+            }
+        }
 
         [HttpGet]
         public async Task<IActionResult> ReserveSpot(int id, string startDate, string startTime, string endDate, string endTime)

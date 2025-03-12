@@ -43,7 +43,7 @@
                         {
                             <td>Ожидает</td>
                             <td>
-                                <form method="post" asp-action="CancelBooking" asp-controller="Home">
+                                <form method="post" asp-action="CancelBooking" asp-controller="Booking">
                                     <input type="hidden" name="BookingId" value="@booking.Id">
                                     <button type="submit" class="btn btn-danger">Отменить</button>
                                 </form>

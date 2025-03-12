@@ -1,5 +1,7 @@
 ﻿@model Booking[]
 @{
+    var parkingId = ViewData["status"] as int?;
+    var parkings = ViewData["parkings"] as Parking[];
 }
 
 @if (TempData["Message"] != null)
@@ -9,12 +11,26 @@
     </div>
 }
 
+<form method="get" asp-action="GetBookings" asp-controller="Admin">
+    <div class="form-group">
+        <label for="parkingId">Парковка:</label>
+        <select id="parkingId" name="parkingId" class="form-control">
+            <option value="">Все парковки</option>
+            @foreach (var parking in parkings)
+            {
+                <option value=@parking.ParkingId>@parking.Address</option>
+            }
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Применить</button>
+</form>
+
 <style>
     /* Добавляем отступы между строками и рамку для каждой строки */
     table {
         width: 100%;
         border-collapse: separate;
-        border-spacing: 0 10px; /* Расстояние между строками */
+        border-spacing: 0 10px;
     }
 
     th, td {
@@ -34,7 +50,6 @@
         background-color: #f1f1f1;
     }
 
-    /* Стиль для кнопки */
     .btn-danger {
         background-color: #dc3545;
         color: white;
@@ -111,8 +126,6 @@
                 {
                     <td>Отменен</td>   
                 }
-
-
              </tr>
         }
     </tbody>

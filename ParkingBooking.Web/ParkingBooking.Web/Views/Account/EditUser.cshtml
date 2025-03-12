@@ -1,0 +1,29 @@
+﻿@model User
+@if (Model != null)
+{
+    <h2>Редактирование пользователя @Model.Name</h2>
+    <form asp-action="EditUser" method="post">
+        <input type="hidden" asp-for="UserId" />
+        <div>
+            <label asp-for="Name">Имя</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="PhoneNumber">Номер телефона</label>
+            <input asp-for="PhoneNumber" class="form-control" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="Email">Почта</label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+    </form>
+}
+else
+{
+    <p>Пользователь не найден.</p>
+}

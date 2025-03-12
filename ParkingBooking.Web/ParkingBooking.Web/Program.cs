@@ -31,7 +31,7 @@ try
 
     // Настройка JWT
     var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-    var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]);
+    var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
 
     builder.Services.AddAuthentication(options =>
     {
@@ -64,6 +64,7 @@ try
     builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+        options.AddPolicy("AdminOrModerator", policy => policy.RequireRole("Admin", "Moderator"));
     });
 
 
