@@ -349,11 +349,13 @@ namespace ParkingBooking.Web.Controllers
             }
             catch (DbUpdateException ex)
             {
+                _logger.LogError(ex, "Ошибка при обновлении данных в базе данных");
                 TempData["Message"] = "Ошибка при работе с базой данных";
                 return RedirectToAction("AccountInfo");
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Произошла непредвиденная ошибка");
                 TempData["Message"] = "Произошла непредвиденная ошибка";
                 return RedirectToAction("AccountInfo");
             }
@@ -457,6 +459,64 @@ namespace ParkingBooking.Web.Controllers
                 TempData["Message"] = "Произошла ошибка при удалении.";
                 return RedirectToAction("AccountInfo");
             }
+        }
+
+       
+        public async Task<IActionResult> BecomeAdmin() 
+        {
+            var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+
+            // Проверка на режим разработки
+            if (!env.IsDevelopment())
+            {
+                _logger.LogWarning("Метод GetAdmin вызван не в режиме разработки.");
+                return NotFound();
+            }
+            try
+            {
+                var accessToken = Request.Cookies["JWT"];
+                var refreshToken = Request.Cookies["RefreshToken"];
+
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                {
+                    _logger.LogWarning("Отсутствует access token или refresh token.");
+                    return NotFound();
+                }
+
+                refreshToken = Uri.UnescapeDataString(refreshToken);
+
+                var principal = _jwtService.GetPrincipalFromExpiredToken(accessToken);
+                var userId = int.Parse(principal.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                var user = await _context.Users.FindAsync(userId);
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Пользователь {UserId} не найден в базе данных.", userId);
+                    return NotFound();
+                }
+
+                if (user.Role != Roles.Admin)
+                {
+                    user.Role = Roles.Admin;
+
+                    var newRefreshToken = _jwtService.GenerateRefreshToken();
+                    user.RefreshToken = newRefreshToken;
+                    user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("RefreshToken:ExpiresTokenDays"));
+
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Права администратора успешно выданы.");
+                }
+
+                return RedirectToAction("Index","Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при проверке пользователя.");
+                return NotFound();
+            }
+
         }
     }
 
